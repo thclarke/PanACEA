@@ -291,7 +291,7 @@ sub main {
 
     $rgb{$defaultFunct} = "dddddd";    #Default Function color is grey
     $rgb{"Background"}  = "e0e0e0";    #Background color is the
-    $rgb{"fGR"}         = "ff0000";    #Default fGR color is red: should I change this?
+    $rgb{"fGR"}         = "606060";    #Default fGR color is red: should I change this? Yes to dark gray
 
     #Reading in functional information and annotation
     if ($func_file) {
@@ -493,32 +493,32 @@ sub make_main_figure() {
         while ( $id_name =~ /\<\/tspan\>/g ) { $n++; }
 
         #Adding the name, the color rectangle. All should be clickable to turn it on/off
-        $out{beg} .= sprintf( "<g onclick=\"runType(\'GeneType\',evt,\'\')\" href=\"%s\">", $a );
+        $out{beg} .= sprintf( "<g onclick=\"runType(\'GeneType\',evt,\'\')\" href=\"%s\" fillcol=\"%s\">", $a, "#" . $rgb{$a} );
 
 #The rectangle around: thought that I might add a box if it's clicked. Currently turrned off (instead all others fade when one is clicked)
         $out{beg} .= sprintf(
-"<rect href=\"%s\" id=\"%s\" class=\"LegRect\" x = \"%f\" y=\"%f\" width=\"%f\" height=\"%f\" fill=\"none\" visiblility=\"hidden\"/>",
+"<rect href=\"%s\" id=\"%s\" class=\"LegRect\" x = \"%f\" y=\"%f\" width=\"%f\" height=\"%f\" fill=\"none\" visiblility=\"hidden\" fillcol=\"%s\"/>",
             $a, $a . "rect",
-            $x1, $y1, $gene_height * 0.75 + $border * 1.15, $gene_height
+            $x1, $y1, $gene_height * 0.75 + $border * 1.15, $gene_height, "#" . $rgb{$a}
         );
 
         #The colored rectange before
         $out{beg} .= sprintf(
-            "<rect  href=\"%s\" id=\"%s\" class=\"LegCol\" x=\"%f\" y=\"%f\" width=\"%f\" height=\"%f\" fill=\"%s\" />\n",
+            "<rect  href=\"%s\" id=\"%s\" class=\"LegCol\" x=\"%f\" y=\"%f\" width=\"%f\" height=\"%f\" fill=\"%s\" fillcol=\"%s\"/>\n",
             $a, $a . "col", $x1,
             $y1 + $gene_height * ($n) / 5,
             $gene_height * 0.5,
             $gene_height / 3.0,
-            "#" . $rgb{$a}
+            "#" . $rgb{$a}, "#" . $rgb{$a}
         );
 
         #The text printed out. Can be multiple lines thanks to col_names
         $out{beg} .= sprintf(
-"<text href=\"%s\" id=\"%s\" class=\"LegType\" x=\"%f\" y=\"%f\" width=\"%f\" height=\"auto\" font-size=\"10\" dominant-baseline=\"hanging\" text-anchor=\"start\" fill=\"black\">%s</text>\n",
+"<text href=\"%s\" id=\"%s\" class=\"LegType\" x=\"%f\" y=\"%f\" width=\"%f\" height=\"auto\" font-size=\"10\" dominant-baseline=\"hanging\" text-anchor=\"start\" fill=\"black\" fillcol=\"%s\>%s</text>\n",
             $a,
             $a . "Text",
             $x1 + $gene_height * 0.6,
-            $y1, $border * 1.15, $id_name
+            $y1, $border * 1.15, "#" . $rgb{$a}, $id_name
         );
         $out{beg} .= sprintf("</g>");
 
@@ -612,7 +612,7 @@ sub make_main_figure() {
                 &convert_layer(1),
                 &convert_layer(1) + $gene_height,
                 "#" . $background,
-                "", 0, "", "", $out{$cur_chr}
+                "", 0, "", "", $cur_chr, $out{$cur_chr}
             );
 
             #Trying to get ticks that have have intervals of a factor of 10 and number between 10 to 100
@@ -625,6 +625,7 @@ sub make_main_figure() {
         my $terms;
         my %term_cnt;
         my $out_cnt = 0;
+		$cr_start = 0;
 
         #Counting through the core genes: can also include psuedo-core genes, that is fGRs
         foreach my $core ( @{ $core_list{$cur_chr} } ) {
@@ -693,7 +694,7 @@ sub make_main_figure() {
                     $out{$chr} = &svg_draw_arc_seg(
                         1, $cr_start, $st - 1, &convert_layer(1), &convert_layer(1) + $gene_height, "#" . $background, $new,
                         sprintf( "CORE REGION $cr_start to %d\n%d Core Genes", ( $st - 1 ), $cr_cnt ), "CORE" . $core_num,
-                        "Region", $out{$chr}
+                        "Region", $chr, $out{$chr}
                     );
 
                     #Counting the number of core regions
@@ -1007,7 +1008,7 @@ sub make_main_figure() {
                     $core_type = "";
                     $core_oth  = "";
                     $out{$chr} =
-                      &svg_draw_arc_seg( 1, $st, $end, $h1, $h2, "#" . $rgb{fGR}, $new, $ID, $ID, "Region", $out{$chr} );
+                      &svg_draw_arc_seg( 1, $st, $end, $h1, $h2, "#" . $rgb{fGR}, $new, $ID, $ID, "Region", $chr, $out{$chr} );
 
                 }
 
@@ -1110,7 +1111,7 @@ sub make_main_figure() {
                     my $h2 = $h1 + ($gene_height);
                     $out{$chr} =
                       &svg_draw_arc_seg( 3, $st, $end, $h1, $h2, "#" . $rgb{ $jso{Gene}->[ $gene_num{$1} ]->{type_ref} },
-                        $same, $ID, $cur_chr, "Gene", $out{$chr} );
+                        $same, $ID, $cur_chr, "Gene", $chr, $out{$chr} );
 
                 } else {
 
@@ -1121,7 +1122,7 @@ sub make_main_figure() {
                     my $h2 = $h1 + ($gene_height);
                     $out{$chr} =
                       &svg_draw_arc_seg( 3, $st, $end, $h1, $h2, "#" . $rgb{ $jso{Gene}->[ $gene_num{$1} ]->{type_ref} },
-                        $same, $ID, $cur_chr, "Gene", $out{$chr} );
+                        $same, $ID, $cur_chr, "Gene", $chr, $out{$chr} );
 
                 }
 
@@ -1164,7 +1165,7 @@ sub make_main_figure() {
             $out{$chr} = &svg_draw_arc_seg(
                 1, $cr_start, $old_st - 1, &convert_layer(1), &convert_layer(1) + $gene_height, "#" . $background, $new,
                 sprintf( "CORE REGION $cr_start to %d\n%d Core Genes", ( $old_st - 1 ), $cr_cnt ), "CORE" . $core_num,
-                "Region", $out{$chr}
+                "Region", $chr, $out{$chr}
             );
             $core_num++;
             $core_type     = "";
@@ -1838,6 +1839,7 @@ sub make_main_figure() {
 
             #writing the levels (0-1) of the main chromosome to the SVG
             $id_in = "svgArc" . $cur_chr;
+			my $def_in = "defs_". $cur_chr;
             print SVG_MAIN "<svg id=\"$id_in\" visibility=\"$vis\">";
 
             for ( my $i = 1 ; $i >= 0 ; $i-- ) {
@@ -4144,7 +4146,7 @@ sub svg_tick {
 #Drawing an arc dsegment
 sub svg_draw_arc_seg {
 
-    my ( $depth, $d1, $d3, $l1, $l2, $c, $href, $name, $id, $type, $out ) = @_;
+    my ( $depth, $d1, $d3, $l1, $l2, $c, $href, $name, $id, $type, $num, $out ) = @_;
     $out->{$depth} .= "<g>\n";
     $d1 += $cur_st;
     $d3 += $cur_st;
@@ -4179,7 +4181,7 @@ sub svg_draw_arc_seg {
             screen_y_trans( $d3, $l1 )
         );
         $out->{$depth} .= sprintf(
-"L %f %f\nA %f,%f 0 0,0 %f,%f\nL %f %f\" id=\"$id_in\" stroke = \"%s\" fill = \"%s\" type = \"$type\" fill_old = \"%s\" href=\"$href\" $func angle=\"%s\"\/>\n",
+"L %f %f\nA %f,%f 0 0,0 %f,%f\nL %f %f\" id=\"$id_in\" stroke = \"%s\" fill = \"%s\" type = \"$type\" fill_prev = \"\" fill_old = \"%s\" href=\"$href\" $func d1=\"$d1\" l1=\"$l1\" d3=\"$d3\" l2=\"$l2\" arc_num=\"$num\" tot_len=\"$seq_len\" angle=\"%s\"\/>\n",
             screen_x_trans( $d3, $l2 ),
             screen_y_trans( $d3, $l2 ),
             $l2,
@@ -4622,7 +4624,7 @@ sub svg_init_image {
 
     my ( $x, $y, $ret ) = @_;
     $ret->{beg} = sprintf(
-"<svg version=\"1.2\" baseProfile=\"tiny\" width=\"$x\" height=\"$y\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" id = \"allsvg\">\n"
+"<svg version=\"1.2\" baseProfile=\"tiny\" width=\"$x\" height=\"$y\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" id = \"allsvg\"><defs id=\"defs\"></defs>\n"
     );
     $ret->{end} = "</svg>\n";
     return ( %{$ret} );
@@ -5159,7 +5161,7 @@ function turnSampleOff(target)
 	{
 		center.setAttribute(\"visibility\", \"hidden\");
 	}
-	target.setAttribute(\"fill\", target.getAttribute(\"fill_old\"));
+	target.setAttribute(\"fill\", target.getAttribute(\"fill_temp\"));
 	svg_all.removeAttribute(\"core_button\");
 	svg_all.removeAttribute(\"core_set\");
 }
@@ -5501,8 +5503,10 @@ function selectGeneType(evt)
 	var target = evt.target;
 	var id = target.getAttribute(\"href\");
 	var svg_all = document.getElementById(\"allsvg\");
+	var defs = document.getElementById(\"defs\");
 	var table = null;
-
+	var fillcol = target.getAttribute(\"fillcol\");
+	
 	//Highlights the function in the legend
 	var id_rect = document.getElementById(id + \"rect\");
 	if (id_rect != null)
@@ -5510,7 +5514,8 @@ function selectGeneType(evt)
 		id_rect.setAttribute(\"visibility\", \"visible\");
 	}
 	var id_rect2 = document.getElementById(id + \"col\");
-
+	
+	
 	//Gets the table information from the JSON
 	var tableHead = JSON.parse(tableHeadStr);
 	var tableWidth = JSON.parse(tableWidthStr);
@@ -5518,8 +5523,10 @@ function selectGeneType(evt)
 	var term2type = JSON.parse(term_2_type);
 
 	var selectType = \"\";
+	var selectCols = \"\";
 	var othType = \"\";
-
+	var turnOn = 1;
+	
 	//Turns off a row highlight if it is on
 	if (svg_all.hasAttribute(\"highlight.row.id\"))
 	{
@@ -5537,35 +5544,44 @@ function selectGeneType(evt)
 	if(!(svg_all.hasAttribute(\"Selection\")))
 	{
 		svg_all.setAttribute(\"Selection\", \"(\" + id + \")\");
+		svg_all.setAttribute(\"SelectCols\", \"(\" + fillcol + \")\");
 		id_rect2.style.stroke = \"black\";
 		id_rect2.style.strokeWidth = 3;
 		selectType =  \"(\" + id + \")\";
+		selectCols = \"(\" + fillcol + \")\";
 	}
 	else
 	{
 		//Searching for selected type in selection
 		selectType = svg_all.getAttribute(\"Selection\");
 		var res = selectType.search( \"(\" + id + \")\");
-
+		selectCols = svg_all.getAttribute(\"SelectCols\");
+		
 		//If selection has already been selected, turn it off
 		if (res >-1)
 		{
 			selectType = selectType.replace(\"(\" + id + \")\", \"\");
+			selectCols = selectCols.replace(\"(\" + fillcol + \")\", \"\");
 			id_rect2.style.strokeWidth = 0;
 			svg_all.setAttribute(\"Selection\", selectType);
+			svg_all.setAttribute(\"SelectCols\", selectCols);
 		}
 		else
 		{
 			//else, turn it on (highlight it)
 
 			selectType = selectType +  \"(\" + id + \")\";
+			selectCols = selectCols +  \"(\" + fillcol + \")\";
 			id_rect2.style.stroke = \"black\";
 			id_rect2.style.strokeWidth = 3;
 			svg_all.setAttribute(\"Selection\", selectType);
+			svg_all.setAttribute(\"SelectCols\", selectCols);
 		}
 	}
 
 	var ids = selectType.match(/([^\)\(]+)/g); // A list of all the selected ids
+	var id_cols = selectCols.match(/([^\)\(]+)/g); // A list of all the selected ids
+	
 	var kys = Object.keys(good); //array of all the selected genes
 	
 	if (ids != null)
@@ -5583,7 +5599,10 @@ function selectGeneType(evt)
 		{
 			var cnt = 0;
 			var genes = reg2gene[tableInfo[\"Region\"][i][\"href\"]].split(\";\");
+			var region = document.getElementById(tableInfo[\"Region\"][i][\"href\"]);
 
+			var fill_val = region.getAttribute(\"fill_old\");
+			var addfill = [];
 			if (\"type_ref\" in tableInfo[\"Region\"][i])
 			{
 
@@ -5592,16 +5611,69 @@ function selectGeneType(evt)
 					if (tableInfo[\"Region\"][i][\"type_ref\"].search(ids[j])>-1)
 					{
 						cnt = cnt + 1;
+						addfill.push(id_cols[j]);
+						fill_val = id_cols[j];
 					}
 				}
 			}
-			if (cnt == ids.length)
+			if (cnt > 1)
 			{
-				var region = document.getElementById(tableInfo[\"Region\"][i][\"href\"]);
+				var findPat = document.getElementById(\"pattern\" + i);
+				if (findPat != null)
+				{
+					findPat.remove();
+				}
+				var newPat = document.createElementNS(\"http://www.w3.org/2000/svg\", \"pattern\");
+				newPat.setAttribute(\"id\", \"pattern\" + i);
+				newPat.setAttribute(\"patternUnits\", \"userSpaceOnUse\");
+				newPat.setAttribute(\"patternTransform\", \"rotate(\"+ region.getAttribute(\"angle\")+\")\");
+				newPat.setAttribute(\"x\", 0);
+				newPat.setAttribute(\"y\", 0);
+				newPat.setAttribute(\"width\", 10);
+				newPat.setAttribute(\"height\", 10);
+				newPat.setAttribute(\"viewbox\",\"0 0 10 10\");
+				var bar_ht = 10/cnt;
+				for (var j = 0; j < cnt; j++)
+				{
+					var newLine = document.createElementNS(\"http://www.w3.org/2000/svg\", \"rect\");
+					newLine.setAttribute(\"x\", 0);
+					newLine.setAttribute(\"y\", j * bar_ht);
+					newLine.setAttribute(\"width\", 10);
+					newLine.setAttribute(\"height\", bar_ht);
+					newLine.setAttribute(\"fill\", addfill[j]);
+					newPat.appendChild(newLine);
+				}
+				defs.appendChild(newPat);
+				
+				fill_val = \"url(#pattern\" + i+\")\";
+			}
+			region.setAttribute(\"fill\", fill_val);
+			region.setAttribute(\"fill-opacity\", 1);
+
+			if (cnt > 0)
+			{
 				good[\"Region\"][tableInfo[\"Region\"][i][\"href\"]] = 1;
 				if (region != null)
 				{
+				
 					region.setAttribute(\"stroke\", \"black\");
+					region.setAttribute(\"stroke-width\", \"3\");
+					region.setAttribute(\"stroke-opacity\", \"1\");
+					
+					
+					if (tableInfo[\"Region\"][i][\"Type\"] == \"fGR\")
+					{
+						region.setAttribute(\"fill_prev\", region.getAttribute(\"fill_prev\") + region.getAttribute(\"fill\") + \";\");
+						region.setAttribute(\"stroke-dasharray\", \"1.0,1.0\");
+						
+					}
+					else
+					{
+						region.setAttribute(\"fill_prev\",  region.getAttribute(\"fill\") + \";\" + region.getAttribute(\"fill_prev\"));
+						//region.setAttribute(\"fill-opacity\", 0.25);
+						region.setAttribute(\"stroke-dasharray\", \"1,0\");
+					
+					}
 				}
 				for (var j =0; j < genes.length; j++)
 				{
@@ -5619,8 +5691,8 @@ function selectGeneType(evt)
 				}
 				if (gene != null)
 				{
-				//	gene.setAttribute(\"fill-opacity\", \"0.25\");
-				//	gene.setAttribute(\"stroke-opacity\", \"0.25\");
+					region.setAttribute(\"stroke\", null);			
+					gene.setAttribute(\"fill-opacity\", \"0.25\");
 				}
 			}
 		}
@@ -5640,16 +5712,16 @@ function selectGeneType(evt)
 					{
 						gene.setAttribute(\"fill-opacity\", \"1.0\");
 						gene.setAttribute(\"stroke-opacity\", \"1.0\");
-						gene.setAttribute(\"stroke\", \"black\");
-						gene.setAttribute(\"stroke-width\", \"2.0\");
+						gene.setAttribute(\"stroke\", gene.getAttribute(\"fill\"));
+						//gene.setAttribute(\"stroke-width\", \"4.0\");
 					}
 					var gene_detail = document.getElementById(tableInfo[\"Gene\"][i][\"detail\"]+\"detail\");
 					if (gene_detail != null)
 					{
 						gene_detail.setAttribute(\"fill-opacity\", \"1.0\");
 						gene_detail.setAttribute(\"stroke-opacity\", \"1.0\");
-						gene_detail.setAttribute(\"stroke\", \"black\");
-						gene_detail.setAttribute(\"stroke-width\", \"2.0\");
+						gene_detail.setAttribute(\"stroke\", gene_detail.getAttribute(\"fill\"));
+						//gene_detail.setAttribute(\"stroke-width\", \"2.0\");
 					}
 					var gene_detail = document.getElementById(tableInfo[\"Gene\"][i][\"detail\"]+\"detailHT\");
 					if (gene_detail != null)
@@ -5658,7 +5730,6 @@ function selectGeneType(evt)
 						gene_detail.setAttribute(\"stroke-opacity\", \"1.0\");
 					}
 				}
-
 				else
 				{
 					good[\"Gene\"][tableInfo[\"Gene\"][i][\"href\"]] = 0;
@@ -5666,21 +5737,23 @@ function selectGeneType(evt)
 					if (gene != null)
 					{
 						gene.setAttribute(\"fill-opacity\", \"0.25\");
-						gene.setAttribute(\"stroke-opacity\", \"0.25\");
-						gene.setAttribute(\"fill\", \"black\");
+						gene.setAttribute(\"stroke-opacity\", \"0.05\");
+						//gene.setAttribute(\"fill\", \"black\");
 						gene.setAttribute(\"stroke\", \"none\");
 					}
 					var gene_detail = document.getElementById(tableInfo[\"Gene\"][i][\"detail\"]+\"detail\");
 					if (gene_detail != null)
 					{
 						gene_detail.setAttribute(\"fill-opacity\", \"0.25\");
-						gene_detail.setAttribute(\"stroke-opacity\", \"0.25\");
+						gene_detail.setAttribute(\"stroke-opacity\", \"0.05\");
+						gene_detail.setAttribute(\"stroke\", \"none\");
+
 					}
 					var gene_detail = document.getElementById(tableInfo[\"Gene\"][i][\"detail\"]+\"detailHT\");
 					if (gene_detail != null)
 					{
 						gene_detail.setAttribute(\"fill-opacity\", \"0.25\");
-						gene_detail.setAttribute(\"stroke-opacity\", \"0.25\");
+						gene_detail.setAttribute(\"stroke-opacity\", \"0.05\");
 					}
 				}
 			}
@@ -5712,6 +5785,7 @@ function selectGeneType(evt)
 	}
 	else
 	{
+		console.log(\"Reset\");
 		//Resetting the gene and region colors etc
 		var id_old = svg_all.getAttribute(\"Selection\");
 		for (var i = 0; i < tableInfo[\"Gene\"].length; i++)
@@ -5756,7 +5830,9 @@ function selectGeneType(evt)
 			{
 
 				gene.setAttribute(\"fill-opacity\", \"1.0\");
-				gene.removeAttribute(\"stroke\");
+				gene.setAttribute(\"fill\", gene.getAttribute(\"fill_old\"));
+				
+				//gene.removeAttribute(\"stroke\");
 			}
 		}
 		//
@@ -6133,6 +6209,7 @@ function showSample(target)
 	var but_id = target.getAttribute(\"id\");
 
 	//changing the location color to grey to show that it is being shown
+	target.setAttribute(\"fill_temp\", target.getAttribute(\"fill\"));
 	target.setAttribute(\"fill\", \"grey\");
 	var center = document.getElementById(id_name);
 
