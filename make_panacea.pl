@@ -650,7 +650,7 @@ sub make_main_figure() {
                 if (%cor_reg) {
 
                     #The location of the Core Region Detail Page
-                    my $new = "/core/Core_Region.$core_cnt.html";
+                    my $new = "core/Core_Region.$core_cnt.html";
                     my $c   = 0;                                    #The row of the Region in the Region Table Array
                     if ( $jso{Region} ) { $c = scalar( @{ $jso{Region} } ); }
 
@@ -832,17 +832,15 @@ sub make_main_figure() {
                             die("Cannot find a cluster for $a. Ending PanACEA...\n\n");
 
                         }
-
+						$jso{Gene}->[ $gene_num{ $list{$ID}->{ $sort[0] }->{arr}->[$j] } ]->{href} = "CL_$a";
 #Adding the region information to the table. This could allow for clicking on a gene to highlight it's location in the region
-                        if (! $jso{Gene}->[ $gene_num{ $list{$ID}->{ $sort[0] }->{arr}->[$j] } ]->{href})
+                        if (! $jso{Gene}->[ $gene_num{ $list{$ID}->{ $sort[0] }->{arr}->[$j] } ]->{$head{Gene}->[3]})
 						{
 							$jso{Gene}->[ $gene_num{ $list{$ID}->{ $sort[0] }->{arr}->[$j] } ]->{ $head{Gene}->[3] } = $ID;
-							$jso{Gene}->[ $gene_num{ $list{$ID}->{ $sort[0] }->{arr}->[$j] } ]->{href}               = $ID;
                         }
 						else
 						{
 							$jso{Gene}->[ $gene_num{ $list{$ID}->{ $sort[0] }->{arr}->[$j] } ]->{ $head{Gene}->[3] } .= ",". $ID;
-							$jso{Gene}->[ $gene_num{ $list{$ID}->{ $sort[0] }->{arr}->[$j] } ]->{href}               .= ",". $ID;                       
 						}
 						$jso{Gene}->[ $gene_num{ $list{$ID}->{ $sort[0] }->{arr}->[$j] } ]->{core_clust}         = $cur_chr;
                         $jso{Gene}->[ $gene_num{ $list{$ID}->{ $sort[0] }->{arr}->[$j] } ]->{detail} =
@@ -1125,6 +1123,24 @@ sub make_main_figure() {
                         $same, $ID, $cur_chr, "Gene", $chr, $out{$chr} );
 
                 }
+				while ($jso{Gene}->[  $gene_num{$num1} ]->{oth_ref} =~ /([^\;]+)/g ) {
+					my $in1 = $1 . ";";
+					if ( $ont{$in1} ) {
+						$term_cnt{$in1}++;
+						$terms->{$in1} = $ont{$in1};
+					}
+					if ( !$term2type{$in1} ) {
+						my $type_ref = $jso{Gene}->[ $gene_num{$num1} ]->{type_ref};
+						$term2type{$in1} = $type_ref;
+						if ( !$type2term{$type_ref} ) {
+							$type2term{$type_ref}->[0] = $in1;
+							} else {
+								push @{ $type2term{$type_ref} }, $in1;
+								}
+							}
+                            if ( $core_oth !~ /$in1/ ) { $core_oth .= $in1; }
+
+                       }
 
             }
 
@@ -2385,7 +2401,7 @@ sub make_fgi_page_svg {
 
 #The right bottom set of buttons is in a 2x2 set: trimming the fGR, remove/show the singleton, saving the sequences as a fasta of the save fGIs,
 #All of these call the javascript
-    $out .= sprintf("<div id=\"sortDiv\">");
+    $out .= sprintf("<div id=\"sortDiv\" singleton=\"1\">");
     $out .= sprintf(
 "<button style=\"left:1; top:5; position: absolute; width: %f; height: %f; background-color:#4444ff; \" onclick=\"trimGenomesImage()\" trim=\"0\" id=\"trimButton\">Trim Rows</button>",
         $sz_h * 3, $sz_h * 2, $sz_h / 4, $sz_h / 4 );
@@ -3355,6 +3371,7 @@ sub make_core_region_page {
         $nJscript .= "]\';\n";
 
         #Writing the fasta javascript to the JSON files
+
         open( OUTJSON, ">", $out_dir . "/$output_id/json/" . $num . ".allFasta.json" );
         print OUTJSON $nJscript;
         close(OUTJSON);
@@ -3729,7 +3746,7 @@ sub make_core_region_page {
             $x_len[ $y_len - 1 ] = $x1n;    #resetting x-value to the start
             $legend_height += ( 1 + $max_n[ $y_len - 1 ] );            #adding to the legend height
             $cur_y += $sz_h * ( ( $max_n[ $y_len - 1 ] + 1 ) * 1 );    #
-            if ( $x1n + $x_l > $legend_width ) { $legend_width = $x1n + $x_l + 4; }    #resetting the legend width as needed
+            if ( $x1n > $legend_width ) { $legend_width = $x1n + 4; }    #resetting the legend width as needed
             $y_len++;
             $x1n = 0;
 
@@ -3746,11 +3763,12 @@ sub make_core_region_page {
         $y_loc[$i] = $y_len - 1;      #Keeping y as needed
         $y_l[$i]   = $cur_y;
 
+
     }
+	if ( $x1n > $legend_width ) { $legend_width = $x1n + 4; }
 
     $x_len[ $y_len - 1 ] = $x1n;
-    $legend_height += $cur_y + ( $max_n[ $y_len - 1 ] + 1 );
-    if ( $x1n > $legend_width ) { $legend_width = $x1n + 4; }
+    $legend_height += ( $max_n[ $y_len - 1 ] + 1 );#$cur_y + ( $max_n[ $y_len - 1 ] + 1 );
 
     #Setting the x location of the legend box
     $x1n = ( $tot_width - $legend_width ) / 2;
@@ -3760,7 +3778,9 @@ sub make_core_region_page {
         $legend_width = $tot_width * $sz_dif;
 
     }    #If x1 is greater than the total width, then just set it to zero
-         #$legend_width = max(250, $legend_width);
+    
+	$legend_width = max(250, $legend_width);
+
     $outn .= sprintf(
 "<div id = \"legendDiv\" ht=\"%f\" wd=\"%f\"  style=\"height:%f; width:%f; position:absolute; top:%f;\" num=\"%f\"><svg id=\"legendSVG\" version=\"1.2\" baseProfile=\"tiny\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" id=\"$file\" height=\"\%f\" width=\"\%f\" left=\"\%f\">\n",
         ( $legend_height + 1.5 ) * $sz_h, $legend_width, ( $legend_height + 1.5 ) * $sz_h,
@@ -3833,7 +3853,7 @@ sub make_core_region_page {
 
     #Adding in the svg_g
     $outn .= $out_g;
-    $outn .= sprintf( "</div><div id=\"sortDiv\" style=\"top:%fpx; left:1px; position: relative;\">",
+    $outn .= sprintf( "</div><div id=\"sortDiv\" style=\"top:%fpx; left:1px; position: relative;\" singleton=\"1\">",
         ( $legend_height + 1.5 ) * $sz_h + $gene_height * 5 );
     $outn .= sprintf(
 "<button style=\"left:1; top:5; position: absolute; width: %f; height: %f; background-color:#4444ff; \" onclick=\"transformGenes(\'$file\', \'95\')\"  id=\"decreaseButton\"> - </button>",
@@ -5832,7 +5852,7 @@ function selectGeneType(evt)
 				gene.setAttribute(\"fill-opacity\", \"1.0\");
 				gene.setAttribute(\"fill\", gene.getAttribute(\"fill_old\"));
 				
-				//gene.removeAttribute(\"stroke\");
+				gene.removeAttribute(\"stroke\");
 			}
 		}
 		//
@@ -5919,7 +5939,7 @@ function saveSVG(fileType)
 	var nw = document.createElement(\"a\");
 	var svg_all = document.getElementById(\"allsvg\");
 	var coreNum = svg_all.getAttribute(\"coreNum\");
-	var svgStr = \"<svg xmlns=\\\"http://www.w3.org/2000/svg\\\" xmlns:xlink=\\\"http://www.w3.org/1999/xlink\\\" height=\\\"$SVGHEIGHT\\\" width=\\\"$SVGWIDTH\\\">\"+document.getElementById(\"svgOut\"+coreNum).innerHTML +document.getElementById(\"svgArc\"+coreNum).innerHTML+\"</svg>\";
+	var svgStr = \"<svg xmlns=\\\"http://www.w3.org/2000/svg\\\" xmlns:xlink=\\\"http://www.w3.org/1999/xlink\\\" height=\\\"$SVGHEIGHT\\\" width=\\\"$SVGWIDTH\\\"><defs id=\\\"defs\\\">\"+document.getElementById(\"defs\").innerHTML+\"</defs>\" + document.getElementById(\"svgOut\"+coreNum).innerHTML +document.getElementById(\"svgArc\"+coreNum).innerHTML+\"</svg>\";
 	var inSvg = new Blob([svgStr], {type: \'image/svg+xml\'});
 	var svgfile = URL.createObjectURL(inSvg);
 	var location = window.location.href;
@@ -5932,9 +5952,9 @@ function saveSVG(fileType)
 		newSVG.setAttribute(\"xmlns:xlink\",\"http://www.w3.org/1999/xlink\");
 		newSVG.setAttribute(\"height\", \"$SVGHEIGHT_BIG\");
 		newSVG.setAttribute(\"width\",\"$SVGWIDTH_BIG\");
-		newSVG.innerHTML = document.getElementById(\"LegendText\").innerHTML + document.getElementById(\"Legend1\").innerHTML+ document.getElementById(\"svgOut\"+coreNum).innerHTML + document.getElementById(\"svgArc\"+coreNum).innerHTML;
+		newSVG.innerHTML = svgStr;
 		var svgStr = new XMLSerializer().serializeToString(newSVG);
-
+		console.log(\"out\");
 		var canvas = document.createElement(\"canvas\");
 		canvas.width = $SVGHEIGHT;
 		canvas.height = $SVGWIDTH;
@@ -5948,7 +5968,7 @@ function saveSVG(fileType)
 			ctx.drawImage(img, 0, 0);
 
 			nw.setAttribute(\"download\",\"Main.$filenamePNG\");
-			nw.setAttribute(\"href\", canvas.toDataURL(\"image/png\", 1.0));
+			nw.setAttribute(\"href\", canvas.toDataURL(\"image/png\"));
 			nw.setAttribute(\"target\", \"_blank\");
 
 			alert(\"Saved PNG to \" + \"$filenamePNG\");
@@ -7758,6 +7778,7 @@ sub fgi_javascript() {
 				canvas.width = totWidth;
 				canvas.height = totHeight;
 				var ctx = canvas.getContext(\"2d\");
+				
 				var img = new Image();
 				img.src = \"data:image/svg+xml;base64,\" + window.btoa(svgStr);
 				img.onload = function() {
@@ -9091,9 +9112,9 @@ sub fgi_javascript() {
 								{
 									var newSVG = document.createElementNS(\"http://www.w3.org/2000/svg\", \"line\");
 									newSVG.setAttributeNS(null, \"class\",  treeJSON[i][j][7]+\"0\");
-									newSVG.setAttributeNS(null, \"x1\", ((parseFloat(treeJSON[i][j][0])-level)*x_dist));
+									newSVG.setAttributeNS(null, \"x1\", ((parseFloat(treeJSON[i][j][0])-level+meta_cnt)*x_dist));
 									newSVG.setAttributeNS(null, \"y1\", ((parseFloat(treeJSON[i][j][1])*y_dist)));
-									newSVG.setAttributeNS(null, \"x2\", ((parseFloat(treeJSON[i][j][2])-level)*x_dist));
+									newSVG.setAttributeNS(null, \"x2\", ((parseFloat(treeJSON[i][j][2])-level+meta_cnt)*x_dist));
 									newSVG.setAttributeNS(null, \"y2\", ((parseFloat(treeJSON[i][j][3]))*y_dist));
 									newSVG.setAttributeNS(null, \"stroke\", \"black\");
 									newSVG.setAttributeNS(null, \"stroke-width\", \"2\");
@@ -9104,9 +9125,9 @@ sub fgi_javascript() {
 								{
 									var newSVG = document.createElementNS(\"http://www.w3.org/2000/svg\", \"line\");
 									newSVG.setAttributeNS(null, \"class\",  treeJSON[i][j][7]+\"1\");
-									newSVG.setAttributeNS(null, \"x1\", ((parseFloat(treeJSON[i][j][0])-level)*x_dist));
+									newSVG.setAttributeNS(null, \"x1\", ((parseFloat(treeJSON[i][j][0])-level+meta_cnt)*x_dist));
 									newSVG.setAttributeNS(null, \"y1\", ((parseFloat(treeJSON[i][j][1])*y_dist)));
-									newSVG.setAttributeNS(null, \"x2\", ((parseFloat(treeJSON[i][j][2])-level)*x_dist));
+									newSVG.setAttributeNS(null, \"x2\", ((parseFloat(treeJSON[i][j][2])-level+meta_cnt)*x_dist));
 									newSVG.setAttributeNS(null, \"y2\", ((parseFloat(treeJSON[i][j][3]))*y_dist));
 									newSVG.setAttributeNS(null, \"stroke\", \"black\");
 									newSVG.setAttributeNS(null, \"stroke-width\", \"2\");
@@ -9117,7 +9138,7 @@ sub fgi_javascript() {
 								{
 									var newSVG = document.createElementNS(\"http://www.w3.org/2000/svg\", \"circle\");
 									newSVG.setAttributeNS(null, \"class\",  treeJSON[i][j][7]+\"2\");
-									newSVG.setAttributeNS(null, \"cx\", ((treeJSON[i][j][0]-level)*x_dist));
+									newSVG.setAttributeNS(null, \"cx\", ((treeJSON[i][j][0]-level+meta_cnt)*x_dist));
 									newSVG.setAttributeNS(null, \"cy\", ((treeJSON[i][j][1])*y_dist));
 									newSVG.setAttributeNS(null, \"r\", (y_dist/(treeJSON[i][j][5] * 3)));
 									newSVG.setAttributeNS(null, \"cnt\",  treeJSON[i][j][4]);
@@ -9132,6 +9153,84 @@ sub fgi_javascript() {
 							}
 						}
 					}
+					var curr_x = -1;
+					//Adding in the metadata values at the end of levels as they are clicked
+					for (var k in metadata_head)
+					{
+						if (metadata_is_checked[k] == true)
+						{
+							curr_x = curr_x + 1;
+
+							//Goes through the top level
+							for (var j = 0; j < treeJSON[parseInt(level)].length; j++)
+							{
+								//Goes through only the vertical branches
+								if (treeJSON[parseInt(level)][j][6] == 0)
+								{
+									var cx = x_dist * (curr_x);
+									var cy = parseFloat(treeJSON[parseInt(level)][j][3]) * y_dist;
+									var r = x_dist / 3;
+
+									if (treeJSON[parseInt(level)][j][7] in node2meta)
+									{
+										var node_counts = node2meta[treeJSON[parseInt(level)][j][7]][k];
+										var tot = treeJSON[parseInt(level)][j][4];
+										var curr_p = 0;
+
+											//Drawing the metadata circle/pie chart
+											for (var i in node_counts)
+											{
+												var largeArc = 0;
+												var perc = parseFloat(node_counts[i]);
+												if ((perc / tot) > 0.49)
+												{
+													largeArc = 1; //To allow for arcs > 180 degrees
+												}
+												if (perc != tot)
+												{
+													var x1 = Math.cos(curr_p) * r + cx;
+													var y1 = Math.sin(curr_p) * r + cy;
+													var x2 = Math.cos((curr_p + perc / tot) * 2 * Math.PI) * r + cx;
+													var y2 = Math.sin((curr_p + perc / tot) * 2 * Math.PI) * r + cy;
+													curr_p = curr_p + perc / tot;
+													var newSVG = document.createElementNS(\"http://www.w3.org/2000/svg\", \"path\");
+													newSVG.setAttributeNS(null, \"id\", j + \"3\");
+													newSVG.setAttributeNS(null, \"d\", \"M\" + cx+\" \" +cy+\" L \" + x1+\" \" +y1+\" A \" + r + \" \" + r + \" 0 \"+ largeArc+ \" 1 \" +x2+\" \" + y2 + \" L \" + cx + \" \" + cy);
+													newSVG.setAttributeNS(null, \"stroke\", \"red\");
+													newSVG.setAttributeNS(null, \"stroke-width\", \"0\");
+													newSVG.setAttributeNS(null, \"fill\", metadata_head[k][i]);
+
+													treeSVG.appendChild(newSVG);
+												}
+												else
+												{
+													var newSVG = document.createElementNS(\"http://www.w3.org/2000/svg\", \"circle\");
+													newSVG.setAttributeNS(null, \"id\", j + \"3\");
+													newSVG.setAttributeNS(null, \"cx\", cx);
+													newSVG.setAttributeNS(null, \"cy\", cy);
+													newSVG.setAttributeNS(null, \"r\", r);
+													newSVG.setAttributeNS(null, \"fill\", metadata_head[k][i]);
+
+													treeSVG.appendChild(newSVG);
+												}
+											}
+										}
+										else
+										{
+											var newSVG = document.createElementNS(\"http://www.w3.org/2000/svg\", \"circle\");
+											newSVG.setAttributeNS(null, \"id\", j + \"3\");
+											newSVG.setAttributeNS(null, \"cx\", cx);
+											newSVG.setAttributeNS(null, \"cy\", cy);
+											newSVG.setAttributeNS(null, \"r\", r);
+											newSVG.setAttributeNS(null, \"fill\", \"black\");
+
+											treeSVG.appendChild(newSVG);
+
+										}
+									}
+								}
+							}
+						}
 
 				}
 				//Drawing a circular style tree using the same
@@ -9212,13 +9311,13 @@ sub fgi_javascript() {
 								}
 							}
 						}
-						var curr_x = meta_cnt + parseInt(level)-1;
+						var curr_x = levs - parseInt(level);
 						//Adding in the metadata values at the end of levels as they are clicked
 						for (var k in metadata_head)
 						{
 							if (metadata_is_checked[k] == true)
 							{
-								curr_x = curr_x - 1;
+								curr_x = curr_x + 1;
 
 								//Goes through the top level
 								for (var j = 0; j < treeJSON[parseInt(level)].length; j++)
@@ -9226,8 +9325,8 @@ sub fgi_javascript() {
 									//Goes through only the vertical branches
 									if (treeJSON[parseInt(level)][j][6] == 0)
 									{
-										var cx = Math.cos(parseFloat(treeJSON[parseInt(level)][j][3]) * 2 * pi) * x_dist * (levs - curr_x) + xc;
-										var cy = Math.sin(parseFloat(treeJSON[parseInt(level)][j][3]) * 2 * pi) * x_dist * (levs - curr_x) + yc;
+										var cx = Math.cos(parseFloat(treeJSON[parseInt(level)][j][3]) * 2 * pi) * x_dist * (curr_x) + xc;
+										var cy = Math.sin(parseFloat(treeJSON[parseInt(level)][j][3]) * 2 * pi) * x_dist * (curr_x) + yc;
 										var r = x_dist / 3;
 										if (treeJSON[parseInt(level)][j][7] in node2meta)
 										{
@@ -9647,7 +9746,10 @@ sub fgi_javascript() {
 
 					var outVar = allFasta[i];
 					outVar1 = outVar.replace(/--ret--/g, \"\\n\");
+					outVar1 = outVar1.replace(/--aer--/g, \"\\n\");
 					outVar2 = outVar.replace(/--ret--/g, \"<p>\");
+					outVar2 = outVar2.replace(/--aer--/g, \"<p>\");
+
 
 					var fastaHeader1 = \">\";
 					fastaHeader1 = fastaHeader1 + i + \"\\n\";
@@ -9655,8 +9757,8 @@ sub fgi_javascript() {
 					var fastaHeader2 = \"&gt;\";
 					fastaHeader2 = fastaHeader2 + i + \"<p>\";
 
-					txt = txt + fastaHeader1 + outVar1;
-					html = html + fastaHeader2 + outVar2;
+					txt = txt + fastaHeader1 + outVar1 + \"\\n\";
+					html = html + fastaHeader2 + outVar2 + + \"<p>\";
 			}
 			html = html + \"</p>\";
 
@@ -10172,6 +10274,7 @@ function draw_tree(level, type)
 
 												var largeArc = 0; //Allows SVG to draw arc > 180 deg
 												var perc = parseFloat(node_counts[i]);
+												if ((perc / tot) > 0.49)
 												if ((perc / tot) > 0.49)
 												{
 													largeArc = 1;
